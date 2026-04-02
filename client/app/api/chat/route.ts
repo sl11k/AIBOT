@@ -154,7 +154,7 @@ async function validateQuery(query: string) {
   ]);
 
   if (!response.ok) {
-    return { isValid: false, reason: response.error };
+    return { isValid: true, reason: response.error };
   }
 
   const jsonMatch = response.answer.match(/\{[\s\S]*\}/);
