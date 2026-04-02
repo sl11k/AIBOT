@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rag_chatbot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: rag-backend
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/rag_chatbot
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      EMBEDDING_MODEL: gemini-embedding-001
+      GEMINI_MODEL: gemini-2.5-flash
+      MAX_QUERY_LENGTH: 1000
+      SIMILARITY_THRESHOLD: 0.7
+      LEXICAL_OVERLAP_THRESHOLD: 0.1
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: rag-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:
