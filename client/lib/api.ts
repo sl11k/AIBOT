@@ -20,7 +20,7 @@ export async function sendChatMessage(
     // Append sources if available
     if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
       // Clean up the response if it already has a "Sources" section
-      // Perplexity sometimes adds its own sources, we want to unify them.
+      // The AI model sometimes adds its own sources, we want to unify them.
       // Remove any existing "Sources:" block at the end
       fullResponse = fullResponse.replace(/(?:\n\s*)*\*\*?Sources:?\*\*?[\s\S]*$/, '').trim();
       fullResponse = fullResponse.replace(/(?:\n\s*)*Sources:?[\s\S]*$/, '').trim();

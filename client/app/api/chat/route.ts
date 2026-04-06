@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
 
 export const runtime = "nodejs";
-
-const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
-const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || "sonar-pro";
-const DEFAULT_TIMEOUT_MS = process.env.NETLIFY ? "15000" : "60000";
-const PERPLEXITY_TIMEOUT_MS = Number(process.env.PERPLEXITY_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
 
 const MEDICAL_DISCLAIMER_EN =
   "\n\n--- \n*Disclaimer: This information is for educational purposes only and does not substitute professional medical advice. Always consult a qualified healthcare provider for medical concerns.*";
@@ -76,58 +72,35 @@ const SYSTEM_PROMPT = `أنت نورا، مساعد ذكاء اصطناعي مت
 2. https://www.cdc.gov/nutrition/index.html
 `;
 
-type PerplexityRole = "system" | "user" | "assistant";
-type PerplexityMessage = { role: PerplexityRole; content: string };
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) _openai = new OpenAI();
+  return _openai;
+}
+const AI_MODEL = "gpt-4.1";
 
-async function perplexityChat(messages: PerplexityMessage[]) {
-  const apiKey = process.env.PERPLEXITY_API_KEY;
-  if (!apiKey) {
-    return { ok: false as const, status: 500, error: "PERPLEXITY_API_KEY غير مضبوط على الخادم." };
-  }
+type ChatRole = "system" | "user" | "assistant";
+type ChatMessage = { role: ChatRole; content: string };
 
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), PERPLEXITY_TIMEOUT_MS);
-
+async function aiChat(messages: ChatMessage[]) {
   try {
-    const res = await fetch(PERPLEXITY_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        model: PERPLEXITY_MODEL,
-        messages,
-        temperature: 0.2,
-        top_p: 0.9,
-        return_citations: true,
-        return_images: false,
-        return_related_questions: false,
-        search_domain_filter: [],
-      }),
-      signal: controller.signal,
+    const completion = await getOpenAI().chat.completions.create({
+      model: AI_MODEL,
+      messages,
+      temperature: 0.2,
+      top_p: 0.9,
+      max_tokens: 2048,
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const message =
-        data?.error?.message || data?.error || data?.message || `Perplexity Error ${res.status}`;
-      return { ok: false as const, status: res.status, error: message };
-    }
-
-    const answer = data?.choices?.[0]?.message?.content ?? "";
-    const citations: string[] = Array.isArray(data?.citations) ? data.citations : [];
-    return { ok: true as const, status: 200, answer, citations };
+    const answer = completion.choices?.[0]?.message?.content ?? "";
+    return { ok: true as const, status: 200, answer };
   } catch (e: any) {
-    const msg = e?.name === "AbortError" ? "Perplexity timeout" : e?.message || "Perplexity request failed";
+    const msg = e?.message || "AI request failed";
     return { ok: false as const, status: 502, error: msg };
-  } finally {
-    clearTimeout(t);
   }
 }
 
-function postProcessAnswer(answer: string, citations: string[]) {
+function postProcessAnswer(answer: string) {
   const LOW_QUALITY_DOMAINS = [
     "youtube.com",
     "youtu.be",
@@ -171,6 +144,10 @@ function postProcessAnswer(answer: string, citations: string[]) {
     "healthline.com",
     "medicalnewstoday.com",
   ];
+
+  // Extract URLs from the answer text
+  const urlRegex = /https?:\/\/[^\s)\]>,"""]+/g;
+  const citations: string[] = [...new Set((answer.match(urlRegex) || []).map(u => u.replace(/[.,;:!؟?]+$/, '')))];
 
   const filteredCitations = citations.filter((url) => {
     const lower = String(url || "").toLowerCase();
@@ -238,7 +215,7 @@ export async function POST(request: NextRequest) {
 
     const contextEnhancedQuery = `${message}\n\n(Context: Please answer this professionally. Use formal Arabic if the question is in Arabic. Use Markdown tables for comparisons if relevant. Ensure the tone is expert yet accessible.)`;
 
-    const response = await perplexityChat([
+    const response = await aiChat([
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: contextEnhancedQuery },
     ]);
@@ -247,7 +224,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: response.error }, { status: response.status });
     }
 
-    const processed = postProcessAnswer(response.answer, response.citations);
+    const processed = postProcessAnswer(response.answer);
     return NextResponse.json(processed, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ error: "Failed to process the request." }, { status: 500 });
