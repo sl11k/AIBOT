@@ -22,6 +22,7 @@ body {
   background-color: var(--nc-bg);
   color: var(--nc-text);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* منطقة التمرير في نافذة المحادثة */
@@ -31,4 +32,20 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+/* Hide scrollbar for horizontal suggestion scroll on mobile */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prevent zoom on input focus on iOS */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px;
+  }
 }
