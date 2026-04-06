@@ -28,16 +28,16 @@ function MainWithPopup() {
           <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-bold tracking-wide uppercase">
             NutriCare Intelligence System
           </div>
-          <h1 className="text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-4">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-zinc-900 tracking-tight mb-4">
             Nutri<span className="text-[var(--nc-primary)]">Care</span>
           </h1>
-          <p className="text-xl text-zinc-500 font-medium max-w-lg mx-auto leading-relaxed">
+          <p className="text-base sm:text-xl text-zinc-500 font-medium max-w-lg mx-auto leading-relaxed px-2">
             المنصة الذكية المتخصصة في تقديم الاستشارات التغذوية المبنية على الأدلة العلمية والأبحاث الدقيقة.
           </p>
           <div className="mt-10 flex gap-4 justify-center">
             <button
               onClick={openChat}
-              className="px-8 py-4 bg-[var(--nc-primary)] text-white rounded-2xl font-bold text-lg shadow-xl shadow-[var(--nc-primary)]/20 hover:bg-[var(--nc-primary-dark)] transition-all active:scale-95 flex items-center gap-3"
+              className="px-6 py-3.5 sm:px-8 sm:py-4 bg-[var(--nc-primary)] text-white rounded-2xl font-bold text-base sm:text-lg shadow-xl shadow-[var(--nc-primary)]/20 hover:bg-[var(--nc-primary-dark)] transition-all active:scale-95 flex items-center gap-3"
             >
               <span>ابدأ المحادثة الآن</span>
               <ChatIcon />
@@ -52,7 +52,7 @@ function MainWithPopup() {
           type="button"
           onClick={openChat}
           aria-label="فتح المحادثة مع نورا"
-          className="fixed bottom-8 end-8 z-40 w-16 h-16 rounded-2xl bg-[var(--nc-primary)] text-white shadow-2xl shadow-[var(--nc-primary)]/30 hover:bg-[var(--nc-primary-dark)] hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-[var(--nc-primary)]/20 transition-all flex items-center justify-center animate-bounce-slow"
+          className="fixed bottom-6 end-6 sm:bottom-8 sm:end-8 z-40 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[var(--nc-primary)] text-white shadow-2xl shadow-[var(--nc-primary)]/30 hover:bg-[var(--nc-primary-dark)] hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-[var(--nc-primary)]/20 transition-all flex items-center justify-center animate-bounce-slow"
         >
           <ChatIcon />
         </button>
@@ -60,14 +60,14 @@ function MainWithPopup() {
 
       {isChatOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300"
+          className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4 bg-zinc-900/60 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300"
           onClick={closeChat}
           aria-modal="true"
           role="dialog"
           aria-label="نافذة المحادثة"
         >
           <div
-            className="w-full max-w-[800px] h-[90vh] max-h-[850px] bg-white rounded-3xl shadow-2xl border border-zinc-100 overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500"
+            className="w-full h-full sm:max-w-[800px] sm:h-[90vh] sm:max-h-[850px] bg-white sm:rounded-3xl shadow-2xl sm:border sm:border-zinc-100 overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500"
             onClick={(e) => e.stopPropagation()}
           >
             <ChatHeader />
