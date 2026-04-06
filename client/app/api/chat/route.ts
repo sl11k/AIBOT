@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || "sonar-pro";
-const DEFAULT_TIMEOUT_MS = process.env.NETLIFY ? "9000" : "60000";
+const DEFAULT_TIMEOUT_MS = process.env.NETLIFY ? "15000" : "60000";
 const PERPLEXITY_TIMEOUT_MS = Number(process.env.PERPLEXITY_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
 
 const MEDICAL_DISCLAIMER_EN =
@@ -12,23 +12,27 @@ const MEDICAL_DISCLAIMER_EN =
 const MEDICAL_DISCLAIMER_AR =
   "\n\n--- \n*تنويه: هذه المعلومات للأغراض التعليمية فقط ولا تغني عن الاستشارة الطبية المتخصصة. يرجى دائماً استشارة مقدم الرعاية الصحية المؤهل في حال وجود مخاوف طبية.*";
 
-const SYSTEM_PROMPT = `أنت NutriCare، مساعد ذكاء اصطناعي متخصص ومحترف في مجال التغذية والصحة.
+const SYSTEM_PROMPT = `أنت نورا، مساعد ذكاء اصطناعي متخصص في مجال التغذية والصحة ضمن منصة NutriCare.
 
 الهدف:
 تقديم إجابات دقيقة، مبنية على الأدلة العلمية، ومنظمة بشكل احترافي حول التغذية، الأنظمة الغذائية، والصحة العامة.
 
-نطاق العمل الصارم:
-يُسمح لك بالإجابة فقط على الأسئلة المتعلقة بـ:
+نطاق العمل:
+أنتِ متخصصة بشكل رئيسي في:
 - التغذية، الحميات الغذائية، الأكل الصحي، السعرات الحرارية، والمغذيات الكبرى (البروتين، الكربوهيدرات، الدهون).
 - الفيتامينات، المعادن، الترطيب، الهضم، وصحة الجهاز الهضمي.
 - إدارة الوزن، التغذية الرياضية، والتغذية العلاجية.
 - تخطيط الوجبات، جودة الغذاء، سلامة الغذاء، والصحة الأيضية.
 - الممارسة المهنية لأخصائيي التغذية (متابعة العملاء، إدارة العيادات).
+- الطهي، الوصفات الصحية، بدائل المكونات الغذائية.
+- اللياقة البدنية والرياضة من منظور تغذوي.
+- الصحة النفسية المتعلقة بالتغذية (اضطرابات الأكل، الأكل العاطفي).
 
-سياسة الرفض:
-إذا سأل المستخدم عن أي شيء خارج هذا النطاق (مثل البرمجة، السياسة، التاريخ، التجارة العامة)، يجب عليك الرفض فوراً.
-رسالة الرفض يجب أن تكون بالضبط: "عذراً، أنا متخصص فقط في الإجابة على الأسئلة المتعلقة بالتغذية والصحة."
-لا تعتذر. لا تشرح السبب. لا تضف أي نص آخر.
+التعامل مع الأسئلة:
+- أجب على كل سؤال متعلق بالتغذية أو الصحة أو الغذاء أو الطبخ الصحي بشكل مفصل ومفيد.
+- إذا كان السؤال مرتبطاً ولو بشكل بسيط بالتغذية أو الصحة، أجب عليه بشكل طبيعي.
+- إذا كان السؤال عاماً (مثل تحية أو سؤال عن حالك)، رد بلطف وأعد توجيه المحادثة للتغذية.
+- فقط إذا كان السؤال لا علاقة له إطلاقاً بالصحة أو التغذية (مثل البرمجة، السياسة، التاريخ)، أخبر المستخدم بلطف أن تخصصك هو التغذية والصحة واعرض المساعدة في هذا المجال.
 
 قواعد السلوك والأسلوب:
 1. **الاحترافية**: استخدم لغة عربية فصحى، رصينة، ومباشرة.
@@ -71,31 +75,6 @@ const SYSTEM_PROMPT = `أنت NutriCare، مساعد ذكاء اصطناعي م�
 1. https://www.who.int/news-room/fact-sheets/detail/healthy-diet
 2. https://www.cdc.gov/nutrition/index.html
 `;
-
-const VALIDATION_PROMPT = `You are a strict content moderator for a Nutrition & Health AI Assistant.
-Your task is to determine if the user's query is appropriate for a professional nutritionist or health expert to answer.
-
-Appropriate queries include:
-1. Questions about nutrition, diet, food science, and health.
-2. Questions about medical conditions related to diet (e.g., diabetes, obesity).
-3. Questions about professional practice for nutritionists (e.g., "How to track client progress?", "How to write a meal plan?", "Patient assessment").
-4. Questions about interpreting lab results or supplements.
-5. Questions about business management for nutrition clinics (e.g., "How to get clients?", "Best software for meal planning").
-
-Inappropriate queries include:
-1. Programming or coding questions (e.g., "Python code for BMI", "How to build a website").
-2. General knowledge unrelated to health (e.g., "Who is the president?", "History of France").
-3. Politics, entertainment, or technology unrelated to health tools.
-
-Analyze the following query:
-"{{QUERY}}"
-
-Reply with a JSON object:
-{
-  "is_allowed": boolean,
-  "reason": "short explanation"
-}
-Do not provide any other text.`;
 
 type PerplexityRole = "system" | "user" | "assistant";
 type PerplexityMessage = { role: PerplexityRole; content: string };
@@ -145,27 +124,6 @@ async function perplexityChat(messages: PerplexityMessage[]) {
     return { ok: false as const, status: 502, error: msg };
   } finally {
     clearTimeout(t);
-  }
-}
-
-async function validateQuery(query: string) {
-  const response = await perplexityChat([
-    { role: "user", content: VALIDATION_PROMPT.replace("{{QUERY}}", query) },
-  ]);
-
-  if (!response.ok) {
-    return { isValid: false, reason: response.error };
-  }
-
-  const jsonMatch = response.answer.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return { isValid: true as const };
-
-  try {
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (parsed?.is_allowed === true) return { isValid: true as const };
-    return { isValid: false as const, reason: parsed?.reason || "Not allowed" };
-  } catch {
-    return { isValid: true as const };
   }
 }
 
@@ -276,14 +234,6 @@ export async function POST(request: NextRequest) {
     }
     if (message.length > 500) {
       return NextResponse.json({ error: "Message cannot exceed 500 characters." }, { status: 400 });
-    }
-
-    const validation = await validateQuery(message);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { answer: "عذراً، أنا متخصص فقط في الإجابة على الأسئلة المتعلقة بالتغذية والصحة.", sources: [] },
-        { status: 200 }
-      );
     }
 
     const contextEnhancedQuery = `${message}\n\n(Context: Please answer this professionally. Use formal Arabic if the question is in Arabic. Use Markdown tables for comparisons if relevant. Ensure the tone is expert yet accessible.)`;
